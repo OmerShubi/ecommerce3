@@ -13,8 +13,8 @@ def opt_bnd(data, k, years):
         best_sigma_value = float('inf')
         for permutation in permutations(CARS, 5):
             sigma = {p: years[indx] for indx, p in enumerate(permutation)}
-            # df = pd.DataFrame()
-            dfs = []
+            best_bundle_indices = []
+            sigma_value = 0
             for car, year in sigma.items():
                 car_year_df = data.loc[(data['brand'] == car) & (data['year'] == year)]
                 best_bundle_indices.append(car_year_df.value.idxmin())
@@ -24,12 +24,9 @@ def opt_bnd(data, k, years):
                 best_sigma = best_bundle_indices
                 best_sigma_value = sigma_value
 
-
         data.drop(best_sigma, inplace=True)
         optimal_bundle_indices.extend(best_sigma)
-        optimal_bundle_value+=best_sigma_value
-        pass
-
+        optimal_bundle_value += best_sigma_value
 
     # returns the optimal bundle of cars for that k and list of years and their total cost.
     return {"cost": optimal_bundle_value, "bundle": optimal_bundle_indices}
