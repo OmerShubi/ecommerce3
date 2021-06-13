@@ -1,6 +1,6 @@
 import pandas as pd
 import math
-from itertools import permutations
+from itertools import permutations, product # TODO allowed?
 
 ########## Part A ###############
 CARS = ['bmw', 'vw', 'ford', 'kia', 'ferrari']
@@ -14,21 +14,23 @@ def opt_bnd(data, k, years):
         best_sigma_value = float('inf')
         for permutation in permutations(CARS, 5):
             sigma = {p: years[indx] for indx, p in enumerate(permutation)}
-            df = pd.DataFrame()
+            # df = pd.DataFrame()
+            dfs = []
             for car, year in sigma.items():
                 car_year_df = available_data.loc[(available_data['brand']==car) & (available_data['year']==year)]
-                df = df.append(car_year_df)
-            S_sigma = permutations(df.index, 5)
-
+                dfs.append(car_year_df.index)
+                # df = df.append(car_year_df)
+            # S_sigma = permutations(df.index, 5)
+            S_sigma = product(*dfs)
             best_bundle_indices = []
             best_bundle_value = float('inf')
             for bundle_indices in S_sigma:
                 bundle = available_data.loc[bundle_indices, :]
-                if len(bundle.brand.unique()) == 5:
-                    bundle_value = bundle['value'].sum()
-                    if bundle_value < best_bundle_value:
-                        best_bundle_value = bundle_value
-                        best_bundle_indices = bundle_indices
+                # if len(bundle.brand.unique()) == 5:
+                bundle_value = bundle['value'].sum()
+                if bundle_value < best_bundle_value:
+                    best_bundle_value = bundle_value
+                    best_bundle_indices = bundle_indices
 
             sigma_value = best_bundle_value
 
