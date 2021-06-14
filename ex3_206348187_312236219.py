@@ -87,11 +87,18 @@ class Type:
     def cdf(self, x):
         # return F(x) for the histogram self.data
         df = pd.DataFrame(sorted(self.data))
-        indx_below = (df-x).idxmin()
-        indx_above = (x-df).idxmin()
-        value_below = df[indx_below]
-        value_above = df[indx_above]
-        return 1
+
+        if x < df.min().iloc[0]:
+            return 0
+        elif x >= df.max().iloc[0]:
+            return 1
+        else:
+            value_below = df[df<=x].max().iloc[0]
+            value_above = df[df>x].min().iloc[0]
+
+            base_cdf = (df<=x).sum().iloc[0] / len(df)
+            addition_cdf = (1/len(df)) * (x-value_below) / (value_above - value_below)
+            return base_cdf + addition_cdf
 
 
     def os_cdf(self, r, n, x):

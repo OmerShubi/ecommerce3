@@ -12,7 +12,7 @@ years = list(range(2012,2017))
 type = ex3.Type("vw",2015,1700,data)
 type.cars_num = 20
 type.buyers_num = 100
-type.avg_buy()
+print(type.cdf(6500))
 print('You achieved an expected average profit of', int((type.exp_rev()/type.cars_num)-type.avg_buy()), 'per car')
 type.cars_num = 1
 type.buyers_num = 2
