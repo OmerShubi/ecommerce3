@@ -123,6 +123,7 @@ class Type:
 
         if n>r? 0
 
+        Computes E[r] by sum_0_infty of (1-F_X_r)
 
         :return:
         """
