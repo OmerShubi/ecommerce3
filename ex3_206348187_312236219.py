@@ -34,10 +34,10 @@ def opt_bnd(data, k, years):
     return {"cost": int(optimal_bundle_value), "bundle": optimal_bundle_indices}
 
 
-def comb_vcg(data, k, years):
+def proc_vcg(data, k, years):
     # runs the VCG procurement auction
     prices = {}
-
+    # TODO make sure minus is okay or fix.
     output = opt_bnd(data=data.copy().set_index('id'), k=k, years=years)
     for user_id in output['bundle']:
         world_value_with_user = output['cost'] - data.loc[data['id'] == user_id, 'value'].values
@@ -71,24 +71,9 @@ class Type:
     def avg_buy(self):
         # runs a procurement vcg auction for buying cars_num cars on the given self.data.
         # returns the average price paid for a winning car.
-        cost = sorted(self.data)[self.cars_num] # TODO is this okay??
+        cost = sorted(self.data)[self.cars_num]
 
-        purchased_cars = sorted(self.data)[:self.cars_num]
-
-        # runs the VCG procurement auction
-        costs = []
-        for car_value in purchased_cars:
-            world_value_with_user = sum(purchased_cars) - car_value
-            data_without_car = self.data.copy()
-            data_without_car.remove(car_value)
-            purchased_cars_without_car = sorted(data_without_car)[:self.cars_num]
-            world_value_without_user = sum(purchased_cars_without_car)
-            cost = -(world_value_with_user - world_value_without_user)
-            costs.append(cost)
-
-        cost2 = sum(costs) / len(costs)
-        assert cost2 == cost, "Mismatch in cost calculation!"
-        return cost2
+        return cost
 
     def cdf(self, x):
         # return F(x) for the histogram self.data
@@ -116,7 +101,7 @@ class Type:
         # The r out of n order statistic CDF
         return F_x_r
 
-    def exp_rev(self):
+    def _exp_rev_inner(self, r, n):
         """
         n = num buyers
         r = num buyers - num cars
@@ -129,8 +114,7 @@ class Type:
         """
         res = 0
         x = 0
-        r = self.buyers_num - self.cars_num
-        n = self.buyers_num
+
         if r < 0:
             return 0
         while True:
@@ -142,48 +126,99 @@ class Type:
                 x += 1
         # returns the expected revenue in future auction for cars_num items and buyers_num buyers
 
-        return res * self.cars_num
+        return res
+
+    def exp_rev(self):
+        """
+        n = num buyers
+        r = num buyers - num cars
+
+        if n>r? 0
+
+        Computes E[r] by sum_0_infty of (1-F_X_r)
+
+        :return:
+        """
+        r = self.buyers_num - self.cars_num
+        n = self.buyers_num
+        res = self._exp_rev_inner(r, n) * self.cars_num
+
+        return res
 
     def exp_rev_median(self, n):
         """
-         r =
-            x_(2), if x_(2)>=Z ; P(X_(2) >Z)
-            Z, if X_(3)>=Z and X_(2) < Z
-            0, else
-
-         n=2
-         (1-FX_1(Z)) *  E(F_X_1 | data >= Z) +
-                      FX_1(Z) * (1-FX_2(Z)) * Z
-
-         n=3
-         (1-FX_2(Z)) *  E(F_X_2 | data >= Z) +
-                      FX_2(Z) * (1-FX_3(Z)) * Z
-
-        (1-FX_(n-1)(Z)) *  E(F_X_[n-1] | data >= Z) +
-                      FX_(n-1)(Z) * (1-FX_(n)(Z)) * Z
-
 
         :param n:
         :return:
         """
+
         self.buyers_num = n
         Z = pd.Series(self.data).median()
-        FX_n_1 = self.os_cdf(r=n - 1, n=n, x=Z)
-        FX_n = self.os_cdf(r=n, n=n, x=Z)
+        F_Z = self.cdf(Z)  # P(X<=Z)
 
         above_Z = Type(brand=self.brand,
                        data=self.original_data,
                        year=self.year,
                        size=self.size)
-        above_Z.cars_num = 1
-        above_Z.buyers_num = n
 
         above_Z.data = [x for x in above_Z.data if x >= Z]
-        res = (1 - FX_n_1) * above_Z.exp_rev() + FX_n_1 * (1 - FX_n) * Z
+
+        if n==2:
+            res = (1-F_Z) ** 2 * above_Z._exp_rev_inner(r=1, n=2) + 2 * (1-F_Z) * F_Z * Z
+
+        if n==3:
+            res = 0
+            # 1 above
+            res += 3 * (F_Z ** 2) * (1 - F_Z) * Z
+
+            # 2 above
+            res += 3 * (1 - F_Z) ** 2 * F_Z * above_Z._exp_rev_inner(r=1, n=2)
+
+            # 3 above
+            res += (1 - F_Z) ** 3 * above_Z._exp_rev_inner(r=2, n=3)
+
         return res
 
     ########## Part C ###############
+    def _revenue_per_Z(self, Z):
+        b = self.buyers_num
+        c = self.cars_num
+        F_Z = self.cdf(Z)
+        above_Z = Type(brand=self.brand,
+                       data=self.original_data,
+                       year=self.year,
+                       size=self.size)
+
+        above_Z.data = [x for x in above_Z.data if x >= Z]
+
+        price = 0
+
+        for k in range(1, b):
+            prob = math.comb(b, k) * ((1 - F_Z) ** k) * (F_Z ** (b - k))
+            if k <= c:
+                price += prob * k * Z
+            else:
+                price += prob * c * above_Z._exp_rev_inner(r=k-c, n=k)
+
+        return price  # 2700
 
     def reserve_price(self):
         # returns your suggestion for a reserve price based on the self_data histogram.
-        return 0
+        min_bound = self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num)
+        max_bound = self._exp_rev_inner(r=self.buyers_num, n=self.buyers_num)
+
+        max_rev = -1 * float('inf')
+        print(f"Looking for z in range {min_bound}-{max_bound}")
+
+        for z in range(min_bound, max_bound, 100):
+            rev = self._revenue_per_Z(z)
+            if rev > max_rev:
+                max_rev = rev
+                best_Z = z
+                print(f"found better z: {best_Z} with rev {max_rev}")
+
+        return best_Z #2700
+
+
+
+
