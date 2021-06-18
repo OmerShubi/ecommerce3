@@ -37,7 +37,6 @@ def opt_bnd(data, k, years):
 def proc_vcg(data, k, years):
     # runs the VCG procurement auction
     prices = {}
-    # TODO make sure minus is okay or fix.
     output = opt_bnd(data=data.copy().set_index('id'), k=k, years=years)
     for user_id in output['bundle']:
         world_value_with_user = output['cost'] - data.loc[data['id'] == user_id, 'value'].values
@@ -88,7 +87,7 @@ class Type:
             value_above = df[df > x].min().iloc[0]
 
             base_cdf = (df <= x).sum().iloc[0] / len(df)
-            addition_cdf = (1 / len(df)) * (x - value_below) / (value_above - value_below)
+            addition_cdf = ((1 / len(df)) * (x - value_below)) / (value_above - value_below)
             return base_cdf + addition_cdf
 
     def os_cdf(self, r, n, x):
@@ -154,6 +153,7 @@ class Type:
 
         self.buyers_num = n
         Z = pd.Series(self.data).median()
+
         F_Z = self.cdf(Z)  # P(X<=Z)
 
         above_Z = Type(brand=self.brand,
@@ -164,7 +164,7 @@ class Type:
         above_Z.data = [x for x in above_Z.data if x >= Z]
 
         if n==2:
-            res = (1-F_Z) ** 2 * above_Z._exp_rev_inner(r=1, n=2) + 2 * (1-F_Z) * F_Z * Z
+            res = ((1-F_Z) ** 2) * above_Z._exp_rev_inner(r=1, n=2) + 2 * (1-F_Z) * F_Z * Z
 
         if n==3:
             res = 0
@@ -193,7 +193,7 @@ class Type:
 
         price = 0
 
-        for k in range(1, b):
+        for k in range(1, b+1):
             prob = math.comb(b, k) * ((1 - F_Z) ** k) * (F_Z ** (b - k))
             if k <= c:
                 price += prob * k * Z
@@ -204,13 +204,14 @@ class Type:
 
     def reserve_price(self):
         # returns your suggestion for a reserve price based on the self_data histogram.
-        min_bound = self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num)
-        max_bound = self._exp_rev_inner(r=self.buyers_num, n=self.buyers_num)
+        min_bound = int(self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num))
+        max_bound = int(self._exp_rev_inner(r=self.buyers_num, n=self.buyers_num))
 
         max_rev = -1 * float('inf')
         print(f"Looking for z in range {min_bound}-{max_bound}")
 
         for z in range(min_bound, max_bound, 100):
+
             rev = self._revenue_per_Z(z)
             if rev > max_rev:
                 max_rev = rev
@@ -218,7 +219,5 @@ class Type:
                 print(f"found better z: {best_Z} with rev {max_rev}")
 
         return best_Z #2700
-
-
 
 
