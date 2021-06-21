@@ -209,8 +209,10 @@ class Type:
 
         max_rev = -1 * float('inf')
         print(f"Looking for z in range {min_bound}-{max_bound}")
-
-        for z in range(min_bound, max_bound, 100):
+        tries = 20
+        step_size = (max_bound - min_bound)/(tries-1)
+        z_values = [min_bound+round(step_size*i) for i in range(tries)]
+        for z in z_values:
 
             rev = self._revenue_per_Z(z)
             if rev > max_rev:
