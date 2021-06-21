@@ -200,7 +200,7 @@ class Type:
             else:
                 price += prob * c * above_Z._exp_rev_inner(r=k-c, n=k)
 
-        return price  # 2700
+        return price
 
     def reserve_price(self):
         # returns your suggestion for a reserve price based on the self_data histogram.
@@ -208,18 +208,19 @@ class Type:
         max_bound = int(self._exp_rev_inner(r=self.buyers_num, n=self.buyers_num))
 
         max_rev = -1 * float('inf')
-        print(f"Looking for z in range {min_bound}-{max_bound}")
+        # print(f"Looking for z in range {min_bound}-{max_bound}")
         tries = 20
         step_size = (max_bound - min_bound)/(tries-1)
         z_values = [min_bound+round(step_size*i) for i in range(tries)]
+        best_Z = min_bound
         for z in z_values:
 
             rev = self._revenue_per_Z(z)
             if rev > max_rev:
                 max_rev = rev
                 best_Z = z
-                print(f"found better z: {best_Z} with rev {max_rev}")
+                # print(f"found better z: {best_Z} with rev {max_rev}")
 
-        return best_Z #2700
+        return best_Z
 
 
