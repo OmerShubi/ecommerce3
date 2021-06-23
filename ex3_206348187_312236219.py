@@ -204,12 +204,19 @@ class Type:
 
     def reserve_price(self):
         # returns your suggestion for a reserve price based on the self_data histogram.
-        min_bound = int(self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num))
-        max_bound = int(self._exp_rev_inner(r=self.buyers_num, n=self.buyers_num))
+
+        # min_bound = int(self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num))
+        # max_bound = int(self._exp_rev_inner(r=self.buyers_num, n=self.buyers_num))
+        # print(f"Looking for z in range {min_bound}-{max_bound}")
+        df = pd.DataFrame(sorted(self.data))
+
+        min_bound = df.min().iloc[0]
+        max_bound = df.max().iloc[0]
+
 
         max_rev = -1 * float('inf')
         # print(f"Looking for z in range {min_bound}-{max_bound}")
-        tries = 20
+        tries = 100
         step_size = (max_bound - min_bound)/(tries-1)
         z_values = [min_bound+round(step_size*i) for i in range(tries)]
         best_Z = min_bound
