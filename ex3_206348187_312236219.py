@@ -210,23 +210,29 @@ class Type:
         # print(f"Looking for z in range {min_bound}-{max_bound}")
         df = pd.DataFrame(sorted(self.data))
 
-        min_bound = df.min().iloc[0]
+        min_bound = (df.min().iloc[0] + int(self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num)))/2
         max_bound = df.max().iloc[0]
 
 
         max_rev = -1 * float('inf')
         # print(f"Looking for z in range {min_bound}-{max_bound}")
-        tries = 100
+        tries = 40
         step_size = (max_bound - min_bound)/(tries-1)
         z_values = [min_bound+round(step_size*i) for i in range(tries)]
         best_Z = min_bound
+        tries_no_improve = 0
         for z in z_values:
-
             rev = self._revenue_per_Z(z)
+            print(z, rev)
             if rev > max_rev:
+                tries_no_improve = 0
                 max_rev = rev
                 best_Z = z
                 # print(f"found better z: {best_Z} with rev {max_rev}")
+            else:
+                tries_no_improve +=1
+            if tries_no_improve >= 15:
+                break
 
         return best_Z
 
