@@ -210,7 +210,7 @@ class Type:
         # print(f"Looking for z in range {min_bound}-{max_bound}")
         df = pd.DataFrame(sorted(self.data))
 
-        min_bound = (df.min().iloc[0] + int(self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num)))/2
+        min_bound = int((df.min().iloc[0] + int(self._exp_rev_inner(r=self.buyers_num-self.cars_num, n=self.buyers_num)))/2)
         max_bound = df.max().iloc[0]
 
 
