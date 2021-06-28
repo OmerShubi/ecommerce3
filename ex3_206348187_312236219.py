@@ -66,7 +66,7 @@ class Type:
         self.size = size
         self.original_data = data
         self.data = extract_data(brand, year, size, data)
-
+        self.data = sorted(self.data)
     def avg_buy(self):
         # runs a procurement vcg auction for buying cars_num cars on the given self.data.
         # returns the average price paid for a winning car.
@@ -152,33 +152,17 @@ class Type:
         :return:
         """
 
-        self.buyers_num = n
         Z = pd.Series(self.data).median()
 
         F_Z = self.cdf(Z)  # P(X<=Z)
 
-        above_Z = Type(brand=self.brand,
-                       data=self.original_data,
-                       year=self.year,
-                       size=self.size)
+        result = Z * n * (1-F_Z) * (F_Z**(n-1))
+        result += Z * (1-self.os_cdf(n-1, n, Z))
 
-        above_Z.data = [x for x in above_Z.data if x >= Z]
+        for k in range(math.ceil(Z), math.ceil(self.data[-1])+1):
+            result += (1 - self.os_cdf(n-1, n, k))
 
-        if n==2:
-            res = ((1-F_Z) ** 2) * above_Z._exp_rev_inner(r=1, n=2) + 2 * (1-F_Z) * F_Z * Z
-
-        if n==3:
-            res = 0
-            # 1 above
-            res += 3 * (F_Z ** 2) * (1 - F_Z) * Z
-
-            # 2 above
-            res += 3 * (1 - F_Z) ** 2 * F_Z * above_Z._exp_rev_inner(r=1, n=2)
-
-            # 3 above
-            res += (1 - F_Z) ** 3 * above_Z._exp_rev_inner(r=2, n=3)
-
-        return res
+        return result
 
     ########## Part C ###############
     def _revenue_per_Z(self, Z):
