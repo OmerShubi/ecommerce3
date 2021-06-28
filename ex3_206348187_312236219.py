@@ -87,7 +87,8 @@ class Type:
             value_above = df[df > x].min().iloc[0]
 
             base_cdf = (df <= x).sum().iloc[0] / len(df)
-            addition_cdf = ((1 / len(df)) * (x - value_below)) / (value_above - value_below)
+            upper_bound_count = (df == value_above).sum().iloc[0]
+            addition_cdf = ((upper_bound_count / len(df)) * (x - value_below)) / (value_above - value_below)
             return base_cdf + addition_cdf
 
     def os_cdf(self, r, n, x):
