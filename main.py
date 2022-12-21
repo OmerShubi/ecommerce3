@@ -1,5 +1,5 @@
 import pandas as pd
-import ex3_206348187_312236219 as ex3
+import ex3_1_2 as ex3
 
 data = pd.read_csv('Ex3_data.csv')
 
